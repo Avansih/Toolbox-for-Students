@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Image to PDF – Toolbox for Students</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f2f2f2;
+      padding: 2rem;
+      text-align: center;
+    }
+    .btn {
+      margin-top: 1rem;
+      padding: 0.5rem 1.2rem;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    input {
+      margin-top: 1rem;
+    }
+    #preview {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    #preview img {
+      width: 100px;
+      height: auto;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Image to PDF Converter</h1>
+  <input type="file" id="imgInput" accept="image/*" multiple>
+  <br>
+  <button class="btn" onclick="convertToPDF()">Convert to PDF</button>
+
+  <div id="preview"></div>
+
+  <script>
+    const preview = document.getElementById('preview');
+    const imgInput = document.getElementById('imgInput');
+    let images = [];
+
+    imgInput.addEventListener('change', () => {
+      images = Array.from(imgInput.files);
+      preview.innerHTML = '';
+
+      images.forEach((imgFile) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(imgFile);
+      });
+    });
+
+    async function convertToPDF() {
+      if (images.length === 0) {
+        alert('Please select at least one image.');
+        return;
+      }
+
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.create();
+
+        for (const imgFile of images) {
+          const imgData = await fileToImageData(imgFile);
+          const pngImage = await pdfDoc.embedPng(imgData.dataURL);
+          const dims = pngImage.scale(1);
+
+          const page = pdfDoc.addPage([dims.width, dims.height]);
+          page.drawImage(pngImage, {
+            x: 0,
+            y: 0,
+            width: dims.width,
+            height: dims.height,
+          });
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'converted.pdf';
+        link.click();
+      } catch (error) {
+        console.error('Conversion failed:', error);
+        alert('Something went wrong. See the console for more info.');
+      }
+    }
+
+    function fileToImageData(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const dataURL = canvas.toDataURL('image/png'); // always output to PNG
+            resolve({ dataURL });
+          };
+          img.onerror = reject;
+          img.src = event.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+
+</body>
+</html>

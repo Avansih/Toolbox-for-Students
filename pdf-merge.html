@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF Merger - Toolbox for Students</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      padding: 2rem;
+    }
+    input[type="file"] {
+      margin: 1rem 0;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      padding: 0.7rem 1.5rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>PDF Merger</h1>
+  <p>Select multiple PDF files to merge into one:</p>
+  <input type="file" id="fileInput" multiple accept="application/pdf">
+  <br>
+  <button onclick="mergePDFs()">Merge PDFs</button>
+
+  <script>
+    async function mergePDFs() {
+      const files = document.getElementById('fileInput').files;
+      if (files.length < 2) {
+        alert('Please select at least 2 PDFs to merge.');
+        return;
+      }
+
+      const mergedPdf = await PDFLib.PDFDocument.create();
+
+      for (let file of files) {
+        const bytes = await file.arrayBuffer();
+        const pdf = await PDFLib.PDFDocument.load(bytes);
+        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        copiedPages.forEach(page => mergedPdf.addPage(page));
+      }
+
+      const mergedBytes = await mergedPdf.save();
+      const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'merged.pdf';
+      link.click();
+    }
+  </script>
+
+</body>
+</html>

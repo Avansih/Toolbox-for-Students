@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF to Images - Toolbox for Students</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      text-align: center;
+    }
+    canvas {
+      margin-top: 1rem;
+      max-width: 100%;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🖼️ PDF to Images</h1>
+  <input type="file" id="pdfUpload" accept="application/pdf">
+
+  <div id="output"></div>
+
+  <script>
+    document.getElementById('pdfUpload').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const typedarray = new Uint8Array(reader.result);
+
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+        const output = document.getElementById('output');
+        output.innerHTML = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+          output.appendChild(canvas);
+
+          const downloadBtn = document.createElement('button');
+          downloadBtn.textContent = `Download Page ${i}`;
+          downloadBtn.onclick = () => {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL();
+            link.download = `page-${i}.png`;
+            link.click();
+          };
+          output.appendChild(downloadBtn);
+          output.appendChild(document.createElement('br'));
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  </script>
+
+</body>
+</html>

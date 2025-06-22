@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF Splitter - Toolbox for Students</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2rem;
+    }
+    input {
+      margin: 1rem;
+      padding: 0.5rem;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📄 PDF Splitter</h1>
+
+  <input type="file" id="fileInput" accept="application/pdf">
+  <br>
+  <label>From Page: <input type="number" id="startPage" min="1"></label>
+  <label>To Page: <input type="number" id="endPage" min="1"></label>
+  <br>
+  <button onclick="splitPDF()">Split PDF</button>
+
+  <script>
+    async function splitPDF() {
+      const fileInput = document.getElementById('fileInput');
+      const start = parseInt(document.getElementById('startPage').value);
+      const end = parseInt(document.getElementById('endPage').value);
+
+      if (!fileInput.files.length || isNaN(start) || isNaN(end)) {
+        alert("Please upload a PDF and enter valid page numbers.");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const arrayBuffer = await file.arrayBuffer();
+      const srcDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+      const newDoc = await PDFLib.PDFDocument.create();
+
+      const total = srcDoc.getPageCount();
+      const from = Math.max(0, start - 1);
+      const to = Math.min(total - 1, end - 1);
+
+      const pages = await newDoc.copyPages(srcDoc, Array.from({length: to - from + 1}, (_, i) => i + from));
+      pages.forEach(page => newDoc.addPage(page));
+
+      const newBytes = await newDoc.save();
+      const blob = new Blob([newBytes], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'split.pdf';
+      link.click();
+    }
+  </script>
+
+</body>
+</html>
